@@ -1,0 +1,17 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - r-tidyverse
+  - r-stringi
+  - r-data.table
+  - r-glmnet
+  - r-tictoc
+  - r-stringr
+  - bioconductor-genomicalignments
+  - pip
+  - pip:
+    - pandas
+    - pyarrow
+    - pysam

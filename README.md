@@ -104,8 +104,7 @@ Update the input parameters in `SICILIAN.py` script with information about your 
 * `out_dir`: specifies path to the directory that will contain the folder specified by `run_name` for SICILIAN output files.
 * `run_name`: folder name for the SICILIAN output files.
 * `star_path`: the path to the STAR executable file
-* `star_ref_path`: the path to t:q
-he STAR index files 
+* `star_ref_path`: the path to the STAR index files 
 * `gtf_file`: the path to the GTF file used as the reference annotation file for the genome assembly.
 * `annotator_file`: the path to the `annotation_name.pkl` file
 * `exon_pickle_file`: the path to the `annotation_name_exon_bounds.pkl` file (this is an OPTIONAL input)

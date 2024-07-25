@@ -25,7 +25,9 @@ def modify_refnames(CI, gtf_file, stranded_library):
   gtf_df = gtf_df[['seqname', 'strand','gene_name']]
   gene_strand_info = gtf_df.drop_duplicates().reset_index(drop=True)
   swap_names = False
-  CI["HIR1B"] = CI["HIR1A"]
+  #print(f"{CI=}") # FOR DEBUGGING TESTING; CAN PROBABLY REMOVE NOW.
+  CI["HIR1B"] = CI["HIR1A"] 
+  #print(f"{CI=} AFTER `HIR1A step`") # FOR DEBUGGING TESTING; CAN PROBABLY REMOVE NOW.
 #  CI = pd.read_csv("/oak/stanford/groups/horence/Roozbeh/single_cell_project/output/HLCA_171205_10X_cSM_10_cJOM_10_aSJMN_0_cSRGM_0/P1_3_S1_L001/test_class_input.tsv","\t")
   CI_new = CI.drop_duplicates("refName_ABR1")
   
@@ -35,37 +37,38 @@ def modify_refnames(CI, gtf_file, stranded_library):
   CI_new.loc[CI_new["fileTypeR1"] == "Aligned","read_strandR1B"] = CI_new[CI_new["fileTypeR1"] == "Aligned"]["read_strandR1A"]
   # CI_new["read_strandR1A_orig"] = CI_new["read_strandR1A"]
   # CI_new["read_strandR1B_orig"] = CI_new["read_strandR1B"]
-  CI_new["gene_strandR1A"] = CI_new["refName_ABR1"].str.split("|").str[0].str.split(":").str[-1]
-  CI_new["gene_strandR1B"] = CI_new["refName_ABR1"].str.split("|").str[1].str.split(":").str[-1]
-  CI_new["numgeneR1A"] = CI_new["geneR1A"].str.split(",").str.len()#.astype("Int32") # the number of overlapping genes on the R1A side
+  #print(f'{CI_new["refName_ABR1"]=}') # FOR DEBUGGING TESTING; CAN PROBABLY REMOVE NOW.
+  CI_new["gene_strandR1A"] = CI_new["refName_ABR1"].astype(str).str.split("|").str[0].str.split(":").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["gene_strandR1B"] = CI_new["refName_ABR1"].astype(str).str.split("|").str[1].str.split(":").str[-1] # added cast to string, see `CI_new["gene_strandR1A"]` one 
+  CI_new["numgeneR1A"] = CI_new["geneR1A"].astype(str).str.split(",").str.len()#.astype("Int32") # the number of overlapping genes on the R1A side; added cast to string, see `CI_new["gene_strandR1A"]` one
   CI_new[["numgeneR1A"]] = CI_new[["numgeneR1A"]].fillna(0)
-  CI_new["numgeneR1B"] = CI_new["geneR1B"].str.split(",").str.len()#.astype("Int32") # the number of overlapping genes on the R1B side
+  CI_new["numgeneR1B"] = CI_new["geneR1B"].astype(str).str.split(",").str.len()#.astype("Int32") # the number of overlapping genes on the R1B side ; added cast to string, see `CI_new["gene_strandR1A"]` one 
   CI_new[["numgeneR1B"]] = CI_new[["numgeneR1B"]].fillna(0)
   # display(CI_new[CI_new["id"] == "A00111:88:H55NYDMXX:1:1101:15365:8469_TATCAGGCATTATCTC_GCAACGGCAG"])
   
   weird_genes = ["SNORA","RP11","RP4-","SCARNA","DLEU2","SNORD","CTSLP2"]
   for weird_gene in weird_genes:
     for suff in ["A","B"]:
-      ind = CI_new[((CI_new["numgeneR1" + suff] > 2) & (CI_new["geneR1" + suff].str.contains(weird_gene,na=False))) | ((CI_new["numgeneR1" + suff] > 1) & ~(CI_new["gene_strandR1" + suff] == "?") & (CI_new["geneR1" + suff].str.contains(weird_gene,na=False)))].index
-      CI_new.loc[ind,"geneR1" + suff] = CI_new.loc[ind,"geneR1" + suff].str.replace("{}[^,]*[,]".format(weird_gene),"",regex=True).str.replace(",{}.*".format(weird_gene),"")
-      CI_new.loc[ind,"numgeneR1" + suff] = CI_new.loc[ind,"geneR1" + suff].str.split(",").str.len()#.astype("Int32")
+      ind = CI_new[((CI_new["numgeneR1" + suff] > 2) & (CI_new["geneR1" + suff].astype(str).str.contains(weird_gene,na=False))) | ((CI_new["numgeneR1" + suff] > 1) & ~(CI_new["gene_strandR1" + suff] == "?") & (CI_new["geneR1" + suff].astype(str).str.contains(weird_gene,na=False)))].index # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+      CI_new.loc[ind,"geneR1" + suff] = CI_new.loc[ind,"geneR1" + suff].astype(str).str.replace("{}[^,]*[,]".format(weird_gene),"",regex=True).str.replace(",{}.*".format(weird_gene),"")  # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+      CI_new.loc[ind,"numgeneR1" + suff] = CI_new.loc[ind,"geneR1" + suff].astype(str).str.split(",").str.len()#.astype("Int32") # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new["shared_gene"] = [",".join([x for x in a.split(",") if x in b.split(",")]) for a,b in zip(CI_new["geneR1A"],CI_new["geneR1B"])]
   # display(CI_new[CI_new["id"] == "A00111:88:H55NYDMXX:1:1101:15365:8469_TATCAGGCATTATCTC_GCAACGGCAG"])
   
-  CI_new["num_shared_genes"] = CI_new["shared_gene"].str.split(",").str.len()
+  CI_new["num_shared_genes"] = CI_new["shared_gene"].astype(str).str.split(",").str.len() # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new.loc[CI_new["shared_gene"] == "","num_shared_genes"] = 0
   ind = CI_new[(CI_new["num_shared_genes"] > 0) & ((CI_new["numgeneR1A"] > 1) | (CI_new["numgeneR1B"] > 1))].index
   # display(CI_new.loc[[67],"geneR1A"])
-  CI_new.loc[ind,"geneR1A"] = CI_new.loc[ind]["shared_gene"].str.split(",").str[-1]
-  CI_new.loc[ind,"geneR1B"] = CI_new.loc[ind]["shared_gene"].str.split(",").str[-1]
+  CI_new.loc[ind,"geneR1A"] = CI_new.loc[ind]["shared_gene"].astype(str).str.split(",").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new.loc[ind,"geneR1B"] = CI_new.loc[ind]["shared_gene"].astype(str).str.split(",").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new["geneR1A_uniq"] = CI_new["geneR1A"]
   CI_new["geneR1B_uniq"] = CI_new["geneR1B"]
   # display(CI_new[CI_new["id"] == "A00111:88:H55NYDMXX:1:1101:15365:8469_TATCAGGCATTATCTC_GCAACGGCAG"])
   
   ind = CI_new[(CI_new["numgeneR1A"] > 1) & (CI_new["num_shared_genes"] == 0)].index
-  CI_new.loc[ind,"geneR1A_uniq"] = CI_new.loc[ind]["geneR1A"].str.split(",").str[-1]
+  CI_new.loc[ind,"geneR1A_uniq"] = CI_new.loc[ind]["geneR1A"].astype(str).str.split(",").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   ind = CI_new[(CI_new["numgeneR1B"] > 1) & (CI_new["num_shared_genes"] == 0)].index
-  CI_new.loc[ind,"geneR1B_uniq"] = CI_new.loc[ind]["geneR1B"].str.split(",").str[-1]
+  CI_new.loc[ind,"geneR1B_uniq"] = CI_new.loc[ind]["geneR1B"].astype(str).str.split(",").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   for let in ["A","B"]:
   
     CI_new = CI_new.merge(gene_strand_info,how="left",left_on = ["geneR1{}_uniq".format(let),"chrR1{}".format(let)], right_on=["gene_name","seqname"])
@@ -78,14 +81,14 @@ def modify_refnames(CI, gtf_file, stranded_library):
       CI_new["gene_strandR1{}_new".format(let)] = CI_new["read_strandR1{}".format(let)]
 
   ind = CI_new[((((CI_new["gene_strandR1A_new"] != CI_new["read_strandR1A"]) & (CI_new["gene_strandR1B_new"] == CI_new["read_strandR1B"])) | ((CI_new["gene_strandR1A_new"] == CI_new["read_strandR1A"]) & (~CI_new["gene_strandR1B_new"].isna()) & (CI_new["gene_strandR1B_new"] != CI_new["read_strandR1B"]))) & (CI_new["gene_strandR1A"] == "?") & (CI_new["num_shared_genes"] == 0)) & (CI_new["numgeneR1A"] > 1)].index
-  CI_new.loc[ind,"geneR1A_uniq"] = CI_new.loc[ind]["geneR1A"].str.split(",").str[-2]
+  CI_new.loc[ind,"geneR1A_uniq"] = CI_new.loc[ind]["geneR1A"].astype(str).str.split(",").str[-2] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new = CI_new.drop(["gene_strandR1A_new"],axis=1)
   CI_new = CI_new.merge(gene_strand_info,how="left",left_on = ["geneR1A_uniq","chrR1A"], right_on=["gene_name","seqname"])
   CI_new = CI_new.drop(["gene_name","seqname"],axis=1)
   CI_new = CI_new.rename(columns={"strand" : "gene_strandR1A_new"})
 
   ind = CI_new[(((CI_new["gene_strandR1A_new"] != CI_new["read_strandR1A"]) & (~CI_new["gene_strandR1A_new"].isna())  & (CI_new["gene_strandR1B_new"] == CI_new["read_strandR1B"])) | ((CI_new["gene_strandR1A_new"] == CI_new["read_strandR1A"]) & (CI_new["gene_strandR1B_new"] != CI_new["read_strandR1B"]))) & (CI_new["gene_strandR1B"] == "?") & (CI_new["num_shared_genes"] == 0) & (CI_new["numgeneR1B"] > 1)].index
-  CI_new.loc[ind,"geneR1B_uniq"] = CI_new.loc[ind]["geneR1B"].str.split(",").str[-2]
+  CI_new.loc[ind,"geneR1B_uniq"] = CI_new.loc[ind]["geneR1B"].astype(str).str.split(",").str[-2] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new = CI_new.drop(["gene_strandR1B_new"],axis=1)
   CI_new = CI_new.merge(gene_strand_info,how="left",left_on = ["geneR1B_uniq","chrR1B"], right_on=["gene_name","seqname"])
   CI_new = CI_new.rename(columns={"strand" : "gene_strandR1B_new"})
@@ -110,12 +113,12 @@ def modify_refnames(CI, gtf_file, stranded_library):
   ind = CI_new[(CI_new["gene_strandR1A_new"].isna()) & (CI_new["gene_strandR1B_new"] != CI_new["read_strandR1B"]) & (~CI_new["gene_strandR1B_new"].isna())].index
   CI_new.loc[ind,"gene_strandR1A_new"] = CI_new.loc[ind]["read_strandR1A"].map(reverse)
   CI_new["refName_newR1"] = ""
-  CI_new["geneR1B_uniq"].fillna("",inplace=True)
-  CI_new["geneR1A_uniq"].fillna("",inplace=True)
+  CI_new["geneR1B_uniq"] = CI_new["geneR1B_uniq"].fillna("") # address `A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method. ... This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy`
+  CI_new["geneR1A_uniq"] = CI_new["geneR1A_uniq"].fillna("") # address `A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method. ... This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy`
   
   CI_new["reverse"] = False
   ind = CI_new[(CI_new["fileTypeR1"] == "Aligned") & (CI_new["gene_strandR1A_new"] == "-") & (CI_new["juncPosR1A"] < CI_new["juncPosR1B"])].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1B"] + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"] + "|" + CI_new.loc[ind]["chrR1A"] + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"]
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1B"].astype(str) + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"].astype(str) + "|" + CI_new.loc[ind]["chrR1A"].astype(str) + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"].astype(str)
   CI_new.loc[ind,"reverse"] = True
   name_swap = {}
   for c in CI_new.columns:
@@ -129,19 +132,19 @@ def modify_refnames(CI, gtf_file, stranded_library):
     CI_new.loc[ind] = CI_new.loc[ind].rename(columns=name_swap)
   ind = CI_new[(CI_new["fileTypeR1"] == "Aligned") & (CI_new["gene_strandR1A_new"] == "+")].index
   
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1A"] + ":" + CI_new.loc[ind]["geneR1A_uniq"] + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"] + "|" +  CI_new.loc[ind]["chrR1B"] + ":" + CI_new.loc[ind]["geneR1B_uniq"] + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"]
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1A"].astype(str)  + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str)  + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"].astype(str)  + "|" +  CI_new.loc[ind]["chrR1B"].astype(str)  + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str)  + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"].astype(str) 
   
   
   ind = CI_new[(CI_new["fileTypeR1"] == "Chimeric") & (CI_new["gene_strandR1A_new"] != CI_new["read_strandR1A"]) & (CI_new["gene_strandR1B_new"] != CI_new["read_strandR1B"])].index
   
   
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1B"] + ":" + CI_new.loc[ind]["geneR1B_uniq"] + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"] + "|" + CI_new.loc[ind]["chrR1A"] + ":" + CI_new.loc[ind]["geneR1A_uniq"] + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"]
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1B"].astype(str) + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"].astype(str) + "|" + CI_new.loc[ind]["chrR1A"].astype(str) + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"].astype(str)
   CI_new.loc[ind,"reverse"] = True
   if swap_names:
     CI_new.loc[ind] = CI_new.loc[ind].rename(columns=name_swap)
   
   ind = CI_new[(CI_new["fileTypeR1"] == "Chimeric") & ((CI_new["gene_strandR1A_new"] == CI_new["read_strandR1A"]) | (CI_new["gene_strandR1B_new"] == CI_new["read_strandR1B"]))].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1A"] + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"] + "|" +  CI_new.loc[ind]["chrR1B"] + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"]
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["chrR1A"].astype(str) + ":" + CI_new.loc[ind]["geneR1A_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1A"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1A_new"].astype(str) + "|" +  CI_new.loc[ind]["chrR1B"].astype(str) + ":" + CI_new.loc[ind]["geneR1B_uniq"].astype(str) + ":" + CI_new.loc[ind]["juncPosR1B"].astype(str) + ":" + CI_new.loc[ind]["gene_strandR1B_new"].astype(str)
  
   ind1 = CI_new[(CI_new["refName_newR1"] == "") | (CI_new["refName_newR1"].isna())].index # this ind1 is used to simply replace refName_newR1 with the refName_ABR1 
 
@@ -168,32 +171,32 @@ def modify_refnames(CI, gtf_file, stranded_library):
     CI.loc[ind] = CI.loc[ind].rename(columns=name_swap)
   CI_new = CI
 
-  CI_new["gene_strandR1A"] = CI_new["refName_newR1"].str.split("|").str[0].str.split(":").str[-1]
-  CI_new["gene_strandR1B"] = CI_new["refName_newR1"].str.split("|").str[1].str.split(":").str[-1]
-  CI_new["juncPosR1A"] = CI_new["refName_newR1"].str.split("|").str[0].str.split(":").str[2].astype("int")
-  CI_new["juncPosR1B"] = CI_new["refName_newR1"].str.split("|").str[1].str.split(":").str[2].astype("int")
-  CI_new["chrR1A"] = CI_new["refName_newR1"].str.split("|").str[0].str.split(":").str[0]
-  CI_new["chrR1B"] = CI_new["refName_newR1"].str.split("|").str[1].str.split(":").str[0]
-  CI_new["geneR1A_uniq"] = CI_new["refName_newR1"].str.split("|").str[0].str.split(":").str[1]
-  CI_new["geneR1B_uniq"] = CI_new["refName_newR1"].str.split("|").str[1].str.split(":").str[1]
+  CI_new["gene_strandR1A"] = CI_new["refName_newR1"].astype(str).str.split("|").str[0].str.split(":").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["gene_strandR1B"] = CI_new["refName_newR1"].astype(str).str.split("|").str[1].str.split(":").str[-1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["juncPosR1A"] = CI_new["refName_newR1"].astype(str).str.split("|").str[0].str.split(":").str[2].astype("int") # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["juncPosR1B"] = CI_new["refName_newR1"].astype(str).str.split("|").str[1].str.split(":").str[2].astype("int") # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["chrR1A"] = CI_new["refName_newR1"].astype(str).str.split("|").str[0].str.split(":").str[0] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["chrR1B"] = CI_new["refName_newR1"].astype(str).str.split("|").str[1].str.split(":").str[0] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["geneR1A_uniq"] = CI_new["refName_newR1"].astype(str).str.split("|").str[0].str.split(":").str[1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
+  CI_new["geneR1B_uniq"] = CI_new["refName_newR1"].astype(str).str.split("|").str[1].str.split(":").str[1] # added cast to str based on https://stackoverflow.com/a/52065957/8508004
   CI_new.drop("reverse",axis=1,inplace=True)
 
 ## adding the junction type to refName_newR1
   CI_new["junc_type"] = ""
   ind = CI_new[(CI_new["chrR1A"] != CI_new["chrR1B"]) | ((CI_new["read_strandR1A"] == CI_new["read_strandR1B"]) & (abs(CI_new["juncPosR1A"] - CI_new["juncPosR1B"])>=1000000) ) & (CI_new["fileTypeR1"]=="Chimeric")].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"] + "|fus"
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"].astype(str) + "|fus"
   CI_new.loc[ind,"junc_type"] = "fus"
 
   ind = CI_new[(CI_new["chrR1A"] == CI_new["chrR1B"]) & (CI_new["read_strandR1A"] != CI_new["read_strandR1B"])  & (CI_new["fileTypeR1"]=="Chimeric")].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"] + "|sc"
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"].astype(str) + "|sc"
   CI_new.loc[ind,"junc_type"] = "sc"
 
   ind = CI_new[(CI_new["junc_type"] != "sc") & (CI_new["junc_type"] != "fus") &  ( ((CI_new["read_strandR1A"] == "+") & (CI_new["juncPosR1A"] > CI_new["juncPosR1B"])) | ((CI_new["read_strandR1A"] == "-") & (CI_new["juncPosR1A"] < CI_new["juncPosR1B"])) ) & (CI_new["fileTypeR1"]=="Chimeric")].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"] + "|rev"
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"].astype(str)  + "|rev"
   CI_new.loc[ind,"junc_type"] = "rev"
 
   ind = CI_new[((CI_new["junc_type"] != "sc") & (CI_new["junc_type"] != "fus") & (CI_new["junc_type"] != "rev")) | (CI_new["fileTypeR1"]=="Aligned")].index
-  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"] + "|lin"
+  CI_new.loc[ind,"refName_newR1"] = CI_new.loc[ind]["refName_newR1"].astype(str) + "|lin"
  
   CI_new = CI_new.drop("junc_type", axis=1)
   

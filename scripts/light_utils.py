@@ -32,8 +32,8 @@ def modify_refnames(CI, gtf_file, stranded_library):
   CI_new = CI.drop_duplicates("refName_ABR1")
   
 
-  CI_new["geneR1A"] = CI_new["geneR1A"].fillna("")
-  CI_new["geneR1B"] = CI_new["geneR1B"].fillna("")
+  CI_new.loc[:,"geneR1A"] = CI_new["geneR1A"].fillna("")
+  CI_new.loc[:,"geneR1B"] = CI_new["geneR1B"].fillna("")
   CI_new.loc[CI_new["fileTypeR1"] == "Aligned","read_strandR1B"] = CI_new[CI_new["fileTypeR1"] == "Aligned"]["read_strandR1A"]
   # CI_new["read_strandR1A_orig"] = CI_new["read_strandR1A"]
   # CI_new["read_strandR1B_orig"] = CI_new["read_strandR1B"]

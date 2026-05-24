@@ -10,6 +10,7 @@ dependencies:
   - r-tictoc
   - r-stringr
   - bioconductor-genomicalignments
+  - bedtools
   - pip
   - pip:
     - pandas
